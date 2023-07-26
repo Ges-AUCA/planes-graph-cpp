@@ -7,102 +7,15 @@
 #include <functional>
 #include <optional>
 
-#define EXIT_FAILURE 1;
+#include "headers/city.h"
+#include "headers/route.h"
+#include "headers/io.h"
+#include "headers/algo.h"
+#include "headers/util.h"
 
 
-struct City {
-public:
-    City(std::string name, double latitude, double longitude)
-            : name(std::move(name)), latitude(latitude), longitude(longitude) {}
 
-    std::string getName() const { return name; }
-
-    double getLatitude() const { return latitude; }
-
-    double getLongitude() const { return longitude; }
-
-private:
-    std::string name;
-    double latitude;
-    double longitude;
-};
-
-double calculateDistance(const City &origin, const City &destination) {
-    return 0;
-}
-
-struct Route {
-
-public:
-    Route(const City& origin, const City& destination, const std::optional<double> param)
-            : origin(origin), destination(destination) {
-            distance = param.has_value() ? param.value() : calculateDistance(origin, destination);
-    }
-
-    City getOrigin() const { return origin; }
-
-    City getDestination() const { return destination; }
-
-    double getDistance() const { return distance; }
-private:
-    City origin;
-    City destination;
-    double distance;
-};
-
-struct exit_exception : public std::exception {
-    const char *what() const noexcept override {
-        return "Exiting the program...";
-    }
-};
-
-
-std::vector<Route> findShortestRoute(const std::vector<City> &) {
-    std::cout << "Creating a route between two cities." << std::endl;
-    auto fullRoute = {Route(City("Madrid", 40.416775, -3.703790), City("Barcelona", 41.385064, 2.173404), 0)};
-    return fullRoute;
-}
-
-std::vector<Route> findBestRouteMap(const std::vector<City> &) {
-    std::cout << "Creating a route map between all the cities." << std::endl;
-    auto fullMap = std::vector<Route>();
-    return fullMap;
-}
-
-
-std::vector<City> parseCitiesFromCSV(const std::string &filename) {
-
-    //The file is expected to be in the following format:
-    //City Name, Latitude, Longitude, ...
-    std::vector<City> cities;
-
-    std::ifstream file(filename);
-    if (!file) {
-        std::cerr << "Error opening file: " << filename << std::endl;
-        return cities;
-    }
-
-    std::string line;
-    while (std::getline(file, line)) {
-        std::istringstream iss(line);
-        std::string name;
-        std::string latitude;
-        std::string longitude;
-
-        if (
-                std::getline(iss, name, ',') && // Read until the first comma (the name)
-                std::getline(iss, latitude, ',') && // Read until the second comma (the latitude)
-                std::getline(iss, longitude, ',') // Read until the third comma (the longitude)
-                )
-            cities.emplace_back(name, std::stod(latitude), std::stod(longitude));
-        else
-            std::cerr << "Error parsing line: " << line << std::endl;
-    }
-
-    return cities;
-}
-
-std::function<std::vector<Route>(const std::vector<City> &)> getRouteOption() {
+std::function<std::vector<Route>(const std::vector<City> &, double maxDistance)> getRouteOption() {
     const std::string optionMessage = "Now, tell me what do you want to accomplish?\n"
                                       "1. Create a route between two cities.\n"
                                       "2. Create a route map between all the cities.\n"
@@ -119,28 +32,27 @@ std::function<std::vector<Route>(const std::vector<City> &)> getRouteOption() {
             case 2:
                 return findBestRouteMap;
             case 3:
-                 throw exit_exception();
+                throw exit_exception();
             default:
-                 std::cout << "Invalid option. Please try again." << std::endl;
+                std::cout << "Invalid option. Please try again." << std::endl;
         }
     }
 }
 
-void printRoutesInWKTFormat(const std::vector<Route> &routes) {
-    std::cout << "Printing the routes in WKT format." << std::endl;
-    std::ofstream out("output.csv");
-    out << "Name, WKT" << std::endl;
-    for (auto& route : routes) {
-        out << route.getOrigin().getName()<<"-"<<route.getDestination().getName() // Name of the route
-            <<"," // Comma separator
-            <<"\"" // Opening quote for the WKT
-            << "LINESTRING(" // WKT for a line
-            << route.getOrigin().getLongitude() << " " << route.getOrigin().getLatitude() << ", " //Origin (x, y)
-            << route.getDestination().getLongitude() << " " << route.getDestination().getLatitude() << ")" //Destination (x, y)
-            << "\"" //Closing quote for the WKT
-            << std::endl;
+double requestMaxDistance() {
+    std::cout << "Please, enter the maximum distance between a plane can fly." << std::endl;
+    double maxDistance = -1;
+    while(true){
+        std::cin >> maxDistance;
+        if (maxDistance > 0) {
+            break;
+        }
+        std::cout << "Invalid distance. Please try again." << std::endl;
     }
+    return maxDistance;
 }
+
+
 
 
 int main(int argc, char *argv[]) {
@@ -158,9 +70,12 @@ int main(int argc, char *argv[]) {
     };
     try{
         auto routeOption = getRouteOption();
-        auto routes = routeOption(cities);
+        double maxDistance = requestMaxDistance();
+        auto routes = routeOption(cities, maxDistance);
         printRoutesInWKTFormat(routes);
     } catch (const exit_exception &e) {
+        std::cout << e.what() << std::endl;
+    } catch (const impossible_route_exception &e) {
         std::cout << e.what() << std::endl;
     }
     return 0;
