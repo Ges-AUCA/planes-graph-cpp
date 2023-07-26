@@ -59,7 +59,7 @@ struct exit_exception : public std::exception {
 
 std::vector<Route> findShortestRoute(const std::vector<City> &) {
     std::cout << "Creating a route between two cities." << std::endl;
-    auto fullRoute = std::vector<Route>();
+    auto fullRoute = {Route(City("Madrid", 40.416775, -3.703790), City("Barcelona", 41.385064, 2.173404), 0)};
     return fullRoute;
 }
 
@@ -126,6 +126,22 @@ std::function<std::vector<Route>(const std::vector<City> &)> getRouteOption() {
     }
 }
 
+void printRoutesInWKTFormat(const std::vector<Route> &routes) {
+    std::cout << "Printing the routes in WKT format." << std::endl;
+    std::ofstream out("output.csv");
+    out << "Name, WKT" << std::endl;
+    for (auto& route : routes) {
+        out << route.getOrigin().getName()<<"-"<<route.getDestination().getName() // Name of the route
+            <<"," // Comma separator
+            <<"\"" // Opening quote for the WKT
+            << "LINESTRING(" // WKT for a line
+            << route.getOrigin().getLongitude() << " " << route.getOrigin().getLatitude() << ", " //Origin (x, y)
+            << route.getDestination().getLongitude() << " " << route.getDestination().getLatitude() << ")" //Destination (x, y)
+            << "\"" //Closing quote for the WKT
+            << std::endl;
+    }
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -142,7 +158,8 @@ int main(int argc, char *argv[]) {
     };
     try{
         auto routeOption = getRouteOption();
-        routeOption(cities);
+        auto routes = routeOption(cities);
+        printRoutesInWKTFormat(routes);
     } catch (const exit_exception &e) {
         std::cout << e.what() << std::endl;
     }
