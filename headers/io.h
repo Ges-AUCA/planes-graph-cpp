@@ -2,6 +2,9 @@
 #ifndef IO_H
 #define IO_H
 
+#include <fstream>
+#include <sstream>
+
 std::vector<City> parseCitiesFromCSV(const std::string &filename) {
 
     //The file is expected to be in the following format:
@@ -34,7 +37,7 @@ std::vector<City> parseCitiesFromCSV(const std::string &filename) {
     return cities;
 }
 
-void printRoutesInWKTFormat(const std::vector<Route> &routes) {
+void printRoutesInWKTFormat(const std::vector<Flight> &routes) {
     std::cout << "Printing the routes in WKT format." << std::endl;
     std::ofstream out("output.csv");
     out << "Name, WKT" << std::endl;
